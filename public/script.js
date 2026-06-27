@@ -1,58 +1,59 @@
-async function generateAssistantAd() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const outputBox = document.getElementById('output');
-    
-    // Get values from the HTML inputs
-    const platform = document.getElementById('platform').value;
-    const ad_type = document.getElementById('ad_type').value;
-    const trend_mode = document.getElementById('trend_mode').checked;
-    const product = document.getElementById('product').value;
-    const audience = document.getElementById('audience').value;
-    const offer = document.getElementById('offer').value;
-    const brand_voice = document.getElementById('brand_voice').value;
-    const notes = document.getElementById('notes').value;
-
-    // Build the prompt
-    const prompt = `Create a ${ad_type} ad for ${platform}. 
-    Product: ${product}. 
-    Target Audience: ${audience}. 
-    Offer: ${offer}. 
-    Brand Voice: ${brand_voice}. 
-    Notes: ${notes}. 
-    Trend Mode Enabled: ${trend_mode}. 
-    Please provide hooks, a script, and conversion strategy.`;
-
-    // Show loading screen
-    loadingOverlay.style.display = 'flex';
-    outputBox.innerText = "Processing...";
-
-    try {
-        const response = await fetch('http://localhost:3000/api/assistant', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
-        });
-
-        const data = await response.json();
-
-        if (data.choices && data.choices[0]) {
-            outputBox.innerText = data.choices[0].message.content;
-        } else {
-            outputBox.innerText = "Error: " + JSON.stringify(data);
-        }
-    } catch (error) {
-        outputBox.innerText = "Connection Error: Ensure node server.js is running on port 3000.";
-    } finally {
-        loadingOverlay.style.display = 'none';
-    }
+async function callApi(url, payload, resultId) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  const el = document.getElementById(resultId);
+  if (el) el.textContent = data.result || data.brandVoice || data.rewrittenVoice || JSON.stringify(data.summary, null, 2) || "Error.";
 }
 
-function clearForm() {
-    document.getElementById('product').value = '';
-    document.getElementById('audience').value = '';
-    document.getElementById('offer').value = '';
-    document.getElementById('brand_voice').value = '';
-    document.getElementById('notes').value = '';
-    document.getElementById('output').innerText = "Waiting for AI…";
+async function generateAd() {
+  await callApi("/api/assistant", {
+    brandVoice: document.getElementById("brandVoice").value,
+    offer: document.getElementById("offer").value,
+    platform: document.getElementById("platform").value,
+    objective: document.getElementById("objective").value,
+    imagePrompt: document.getElementById("imagePrompt").value,
+    videoScript: document.getElementById("needVideo").checked,
+    shotList: document.getElementById("needShots").checked,
+    critique: document.getElementById("needCritique").checked,
+    conversionStrategy: document.getElementById("needStrategy").checked,
+  }, "assistantResult");
+}
+
+async function createBrandVoice() {
+  await callApi("/api/brandvoice", {
+    brandDescription: document.getElementById("brandDescription").value,
+    examples: document.getElementById("brandExamples").value,
+  }, "brandVoiceResult");
+}
+
+async function rewriteBrandVoice() {
+  await callApi("/api/rewritebrandvoice", {
+    currentVoice: document.getElementById("currentVoice").value,
+    newDirection: document.getElementById("newDirection").value,
+  }, "rewriteResult");
+}
+
+async function runPredictiveLab() {
+  const payload = {
+    brandVoice: document.getElementById("predBrandVoice").value,
+    offer: document.getElementById("predOffer").value,
+    platform: document.getElementById("predPlatform").value,
+    objective: document.getElementById("predObjective").value,
+    budget: document.getElementById("predBudget").value,
+    numVariations: document.getElementById("predVariations").value,
+  };
+  const res = await fetch("/api/predictive-ads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  document.getElementById("predictiveSummary").textContent = JSON.stringify(data.summary, null, 2);
+  const tbody = document.querySelector("#predictiveTable tbody");
+  tbody.innerHTML = data.ads.map(ad => `<tr><td>${ad.headline}</td><td>${ad.score}</td></tr>`).join("");
 }
 
