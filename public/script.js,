@@ -1,0 +1,32 @@
+async function generateAssistantAd() {
+  const platform = document.getElementById("platform").value;
+  const ad_type = document.getElementById("ad_type").value;
+  const trend_mode = document.getElementById("trend_mode").checked;
+  const product = document.getElementById("product").value;
+  const audience = document.getElementById("audience").value;
+  const offer = document.getElementById("offer").value;
+  const notes = document.getElementById("notes").value;
+
+  const payload = {
+    platform,
+    ad_type,
+    trend_mode,
+    product,
+    audience,
+    offer,
+    notes
+  };
+
+  const response = await fetch("http://localhost:3000/api/assistant", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+
+  console.log("Assistant Response:", data);
+
+  document.getElementById("output").textContent =
+    JSON.stringify(data, null, 2);
+}
